@@ -51,7 +51,7 @@ function tallyLog (rawLog, cb) {
 
 function getLog (buildNumber, cb) {
   var options = {
-    host: 'jenkins.int.yammer.com',
+    host: argv.host,
     port: 80,
     path: '/job/yamjs/' + buildNumber + '/consoleText' // Good test build 6277
   };
