@@ -1,0 +1,14 @@
+{
+  "author": "jsetzer",
+  "name": "jake-spec-error-counter",
+  "description": "Tool for downloading build logs from jenkins and counting failed tests",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=0.8.8"
+  },
+  "dependencies": {
+    "async": "~0.1.22",
+    "optimist": "~0.3.5",
+    "underscore": "~1.4.3"
+  }
+}
