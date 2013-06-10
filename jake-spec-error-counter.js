@@ -1,7 +1,14 @@
+/*
+  Enhancement ideas:
+  1. Automatically run off of last {{n}} builds for specified project
+  2. Allow multiple projects to be scanned in one batch
+*/
+
 var argv = require('optimist')
     .usage('Usage: $0 --host [example.com] --from [num] --to [num]')
-    .demand(['host', 'from', 'to'])
+    .demand(['from', 'to'])
     .describe('host', 'The jenkin server\'s host ex: jenkins.domain.com')
+    .describe('project', 'The jenkins project to scan ex: workfeed-js')
     .describe('from', 'The build number of the first build to scan')
     .describe('to', 'The build number of the last build to scan')
     .check(function (args) {
@@ -18,7 +25,10 @@ var _ = require('underscore');
 var async = require('async');
 var http = require('http');
 
-console.log('Running with:', argv.host, argv.from, argv.to);
+var projectName = argv.project || 'yamjs';
+var host = argv.host || 'jenkins.int.yammer.com';
+
+console.log('Running with:', host, projectName, argv.from, argv.to);
 
 var browserFails = {};
 var specFails = {};
@@ -51,9 +61,9 @@ function tallyLog (rawLog, cb) {
 
 function getLog (buildNumber, cb) {
   var options = {
-    host: argv.host,
+    host: host,
     port: 80,
-    path: '/job/yamjs/' + buildNumber + '/consoleText' // Good test build 6277
+    path: '/job/' + projectName + '/' + buildNumber + '/consoleText' // Good test build 6277
   };
 
   var file = '';
@@ -61,7 +71,7 @@ function getLog (buildNumber, cb) {
   http.get(options, function(resp) {
     resp.on('data', function(chunk) {
       var str = chunk.toString();
-      file += str;    
+      file += str;
     }).on('end', function() {
       tallyLog(file, cb);
     });
@@ -72,11 +82,11 @@ function getLog (buildNumber, cb) {
 
 function sortAndPrint (fails) {
   _.chain(fails)
-    .pairs().sortBy(function(pair){ 
-      return pair[1] * -1; 
+    .pairs().sortBy(function(pair){
+      return pair[1] * -1;
     }).each(function(pair){
       console.log(pair[0] + ': ' +  pair[1]);
-    }); 
+    });
 }
 
 function printResults () {
@@ -91,7 +101,7 @@ function printResults () {
 
 var gets = [];
 for (var i = argv.from; i <= argv.to; i++) {
-  
+
   // Create a scope to close build number around
   (function() {
     var build = i;
@@ -99,7 +109,7 @@ for (var i = argv.from; i <= argv.to; i++) {
       getLog(build, cb);
     });
   })();
-  
+
   numBuilds++;
 }
 
@@ -107,8 +117,8 @@ async.parallel(gets, function(err, results) {
   if (err) {
     console.log(err);
     process.exit();
-  } 
-  
-  printResults();  
+  }
+
+  printResults();
   console.log('\nDone.');
 });
