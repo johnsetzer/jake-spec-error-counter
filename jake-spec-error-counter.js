@@ -1,5 +1,6 @@
 var argv = require('optimist')
-  .usage('Usage: $0 --host [example.com] --project [projectname] (--latest [num] OR --from [num] --to [num])')
+  .usage('Usage: $0 --host [example.com] --project [projectname] (--latest ' +
+    '[num] OR --from [num] --to [num])')
   .demand('project')
   .alias('h', 'host')
   .describe('host', 'The jenkin server\'s host ex: jenkins.domain.com')
@@ -27,13 +28,16 @@ var argv = require('optimist')
   .argv,
   _ = require('underscore'),
   async = require('async'),
-  http = require('http');
-
-var DEFAULTS = {
+  http = require('http'),
+  DEFAULTS = {
     HOST: 'jenkins.int.yammer.com'
   },
   host = argv.host || DEFAULTS.HOST,
-  project = argv.project || DEFAULTS.PROJECT;
+  project = argv.project || DEFAULTS.PROJECT,
+  browserFails = {},
+  specFails = {},
+  numBuilds = 0,
+  numFailedBuilds = 0;
 
 if(argv.latest) {
   getLatestBuild(host, project, init);
@@ -41,11 +45,6 @@ if(argv.latest) {
   // Init validates --from and --to args
   init();
 }
-
-var browserFails = {},
-  specFails = {},
-  numBuilds = 0,
-  numFailedBuilds = 0;
 
 function incrementKey (obj, key) {
   obj[key] = obj[key] ? obj[key] + 1 : 1;
