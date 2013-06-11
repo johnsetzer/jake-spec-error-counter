@@ -14,7 +14,7 @@ var argv = require('optimist')
   .describe('to', 'The build number of the last build to scan')
   .check(function (args) {
     if (args.latest === undefined) {
-      if (args.from < 1 || args.to < 1) {
+      if (typeof args.from !== 'number' || typeof args.to !== 'number') {
         throw new Error('"--num" or "--from" and "--to" must be provided');
       }
     }
