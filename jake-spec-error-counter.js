@@ -30,8 +30,7 @@ var argv = require('optimist')
   http = require('http');
 
 var DEFAULTS = {
-    HOST: 'jenkins.int.yammer.com',
-    PROJECT: 'yamjs'
+    HOST: 'jenkins.int.yammer.com'
   },
   host = argv.host || DEFAULTS.HOST,
   project = argv.project || DEFAULTS.PROJECT;
