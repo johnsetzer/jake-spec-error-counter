@@ -1,39 +1,52 @@
-/*
-  Enhancement ideas:
-  1. Automatically run off of last {{n}} builds for specified project
-  2. Allow multiple projects to be scanned in one batch
-*/
-
 var argv = require('optimist')
-    .usage('Usage: $0 --host [example.com] --from [num] --to [num]')
-    .demand(['from', 'to'])
-    .describe('host', 'The jenkin server\'s host ex: jenkins.domain.com')
-    .describe('project', 'The jenkins project to scan ex: workfeed-js')
-    .describe('from', 'The build number of the first build to scan')
-    .describe('to', 'The build number of the last build to scan')
-    .check(function (args) {
-      if (args.from < 1) {
-        throw new Error('"from" must be greater than one');
+  .usage('Usage: $0 --host [example.com] --project [projectname] (--latest [num] OR --from [num] --to [num])')
+  .demand('project')
+  .alias('h', 'host')
+  .describe('host', 'The jenkin server\'s host ex: jenkins.domain.com')
+  .alias('p', 'project')
+  .describe('project', 'The jenkins project to scan ex: workfeed-js')
+  .alias('l', 'latest')
+  .describe('latest', 'The number of most recent builds to parse')
+  .alias('f', 'from')
+  .describe('from', 'The build number of the first build to scan')
+  .alias('t', 'to')
+  .describe('to', 'The build number of the last build to scan')
+  .check(function (args) {
+    if (args.latest === undefined) {
+      if (args.from < 1 || args.to < 1) {
+        throw new Error('"--num" or "--from" and "--to" must be provided');
       }
-      if (args.to < args.from) {
-        throw new Error('"from" must be less than "to"');
-      }
-    })
-    .argv;
+    }
+    if (args.from < 1) {
+      throw new Error('"from" must be greater than one');
+    }
+    if (args.to < args.from) {
+      throw new Error('"from" must be less than "to"');
+    }
+  })
+  .argv,
+  _ = require('underscore'),
+  async = require('async'),
+  http = require('http');
 
-var _ = require('underscore');
-var async = require('async');
-var http = require('http');
+var DEFAULTS = {
+    HOST: 'jenkins.int.yammer.com',
+    PROJECT: 'yamjs'
+  },
+  host = argv.host || DEFAULTS.HOST,
+  project = argv.project || DEFAULTS.PROJECT;
 
-var projectName = argv.project || 'yamjs';
-var host = argv.host || 'jenkins.int.yammer.com';
+if(argv.latest) {
+  getLatestBuild(host, project, init);
+} else {
+  // Init validates --from and --to args
+  init();
+}
 
-console.log('Running with:', host, projectName, argv.from, argv.to);
-
-var browserFails = {};
-var specFails = {};
-var numBuilds = 0;
-var numFailedBuilds = 0;
+var browserFails = {},
+  specFails = {},
+  numBuilds = 0,
+  numFailedBuilds = 0;
 
 function incrementKey (obj, key) {
   obj[key] = obj[key] ? obj[key] + 1 : 1;
@@ -46,9 +59,10 @@ function tallyLog (rawLog, cb) {
   if(matches) {
     matches.forEach(function (m) {
       // Same as meatches but with no g flag
-      var rematch = m.match(/.*\[(\w+)\-.*FAILED Spec\[(.*)\].*/i);
-      var browser = rematch[1];
-      var spec = rematch[2];
+      var rematch = m.match(/.*\[(\w+)\-.*FAILED Spec\[(.*)\].*/i),
+        browser = rematch[1],
+        spec = rematch[2];
+
       incrementKey(browserFails, browser);
       incrementKey(specFails, spec);
     });
@@ -56,35 +70,56 @@ function tallyLog (rawLog, cb) {
     numFailedBuilds++;
   }
 
+  numBuilds++;
+
   cb();
+}
+
+function getLatestBuild (host, project, next) {
+  var options = {
+    host: host,
+    port: 80,
+    path: '/job/' + project + '/api/json'
+  },
+  file = '';
+
+  http.get(options, function (res) {
+    res.on('data', function (chunk) {
+      file += chunk.toString();
+    }).on('end', function () {
+      file = JSON.parse(file);
+      next(null, file.builds[0].number);
+    });
+  }).on('error', function (e) {
+    next(e);
+  });
 }
 
 function getLog (buildNumber, cb) {
   var options = {
     host: host,
     port: 80,
-    path: '/job/' + projectName + '/' + buildNumber + '/consoleText' // Good test build 6277
-  };
+    path: '/job/' + project + '/' + buildNumber + '/consoleText' // Good test build 6277
+  },
+  file = '';
 
-  var file = '';
-
-  http.get(options, function(resp) {
-    resp.on('data', function(chunk) {
+  http.get(options, function (resp) {
+    resp.on('data', function (chunk) {
       var str = chunk.toString();
       file += str;
-    }).on('end', function() {
+    }).on('end', function () {
       tallyLog(file, cb);
     });
-  }).on('error', function(e) {
+  }).on('error', function (e) {
     cb(e);
   });
 }
 
 function sortAndPrint (fails) {
   _.chain(fails)
-    .pairs().sortBy(function(pair){
+    .pairs().sortBy(function (pair){
       return pair[1] * -1;
-    }).each(function(pair){
+    }).each(function (pair){
       console.log(pair[0] + ': ' +  pair[1]);
     });
 }
@@ -99,26 +134,37 @@ function printResults () {
   sortAndPrint(specFails);
 }
 
-var gets = [];
-for (var i = argv.from; i <= argv.to; i++) {
+function init (err, latestBuild) {
+  if(err) {
+    throw new Error('Error: Could not get latest build number', e);
+  }
+  var gets = [],
+    latest = argv.latest,
+    from = argv.from || latestBuild - latest + 1,
+    to = argv.to || latestBuild;
 
-  // Create a scope to close build number around
-  (function() {
-    var build = i;
-    gets.push(function (cb) {
-      getLog(build, cb);
-    });
-  })();
+  console.log('Fetching "' + project + '" from: ' + host);
+  console.log('Builds:', {from: from, to: to, latest: latest});
 
-  numBuilds++;
-}
+  for (var i = from; i <= to; i++) {
 
-async.parallel(gets, function(err, results) {
-  if (err) {
-    console.log(err);
-    process.exit();
+    // Create a scope to close build number around
+    (function () {
+      var build = i;
+      gets.push(function (cb) {
+        getLog(build, cb);
+      });
+    }());
   }
 
-  printResults();
-  console.log('\nDone.');
-});
+  async.parallel(gets, function (err, results) {
+
+    if (err) {
+      console.log(err);
+      process.exit();
+    }
+
+    printResults();
+    console.log('\nDone.');
+  });
+}
