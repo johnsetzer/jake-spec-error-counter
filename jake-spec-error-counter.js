@@ -1,49 +1,60 @@
-var argv = require('optimist')
-  .usage('Usage: $0 --host [example.com] --project [projectname] (--latest ' +
-    '[num] OR --from [num] --to [num])')
-  .demand('project')
-  .alias('h', 'host')
-  .describe('host', 'The jenkin server\'s host ex: jenkins.domain.com')
-  .alias('p', 'project')
-  .describe('project', 'The jenkins project to scan ex: workfeed-js')
-  .alias('l', 'latest')
-  .describe('latest', 'The number of most recent builds to parse')
-  .alias('f', 'from')
-  .describe('from', 'The build number of the first build to scan')
-  .alias('t', 'to')
-  .describe('to', 'The build number of the last build to scan')
-  .check(function (args) {
-    if (args.latest === undefined) {
-      if (typeof args.from !== 'number' || typeof args.to !== 'number') {
-        throw new Error('"--num" or "--from" and "--to" must be provided');
-      }
-    }
-    if (args.from < 1) {
-      throw new Error('"from" must be greater than one');
-    }
-    if (args.to < args.from) {
-      throw new Error('"from" must be less than "to"');
-    }
-  })
-  .argv,
-  _ = require('underscore'),
-  async = require('async'),
-  http = require('http'),
-  DEFAULTS = {
+var _ = require('underscore')
+  , async = require('async')
+  , http = require('http')
+  , DEFAULTS = {
     HOST: 'jenkins.int.yammer.com'
-  },
-  host = argv.host || DEFAULTS.HOST,
-  project = argv.project || DEFAULTS.PROJECT,
-  browserFails = {},
-  specFails = {},
-  numBuilds = 0,
-  numFailedBuilds = 0;
+  }
+  , browserFails = {}
+  , specFails = {}
+  , numBuilds = 0
+  , numFailedBuilds = 0;
 
-if(argv.latest) {
-  getLatestBuild(host, project, init);
-} else {
-  // Init validates --from and --to args
-  init();
+function parseArguments (args) {
+console.log('incoming args:', args);
+  var argv = require('optimist')
+    .usage('Usage: $0 --host [example.com] --project [projectname] (--latest ' +
+      '[num] OR --from [num] --to [num])')
+    .demand('project')
+    .alias('h', 'host')
+    .describe('host', 'The jenkin server\'s host ex: jenkins.domain.com')
+    .alias('p', 'project')
+    .describe('project', 'The jenkins project to scan ex: workfeed-js')
+    .alias('l', 'latest')
+    .describe('latest', 'The number of most recent builds to parse')
+    .alias('f', 'from')
+    .describe('from', 'The build number of the first build to scan')
+    .alias('t', 'to')
+    .describe('to', 'The build number of the last build to scan')
+    .check(function (args) {
+      if (args.latest === undefined) {
+        if (typeof args.from !== 'number' || typeof args.to !== 'number') {
+          throw new Error('"--num" or "--from" and "--to" must be provided');
+        }
+      }
+      if (args.from < 1) {
+        throw new Error('"from" must be greater than one');
+      }
+      if (args.to < args.from) {
+        throw new Error('"from" must be less than "to"');
+      }
+    })
+    .parse(args)
+    , sanitizedArgs = {
+      host: argv.h || argv.host || DEFAULTS.HOST
+      , project: argv.p || argv.project
+      , latest: argv.l || argv.latest
+      , from: argv.f || argv.from
+      , to: argv.t || argv.to
+    };
+
+console.log('argv:', argv);
+console.log('sanitizedArgs:', sanitizedArgs);
+
+  return sanitizedArgs;
+}
+
+function startExternally (args) {
+  init(parseArguments(args));
 }
 
 function incrementKey (obj, key) {
@@ -86,14 +97,14 @@ function getLatestBuild (host, project, next) {
       file += chunk.toString();
     }).on('end', function () {
       file = JSON.parse(file);
-      next(null, file.builds[0].number);
+      next(file.builds[0].number);
     });
   }).on('error', function (e) {
     next(e);
   });
 }
 
-function getLog (buildNumber, cb) {
+function getLog (buildNumber, host, project, cb) {
   var options = {
     host: host,
     port: 80,
@@ -132,37 +143,55 @@ function printResults () {
   sortAndPrint(specFails);
 }
 
-function init (err, latestBuild) {
-  if(err) {
-    throw new Error('Error: Could not get latest build number', e);
-  }
-  var gets = [],
-    latest = argv.latest,
-    from = argv.from || latestBuild - latest + 1,
-    to = argv.to || latestBuild;
+function init (sanitizedArgs) {
+console.log('init\'s sanitizedArgs:', sanitizedArgs);
+  var from
+    , to
+    , latest;
 
-  console.log('Fetching "' + project + '" from: ' + host);
-  console.log('Builds:', {from: from, to: to, latest: latest});
-
-  for (var i = from; i <= to; i++) {
-
-    // Create a scope to close build number around
-    (function () {
-      var build = i;
-      gets.push(function (cb) {
-        getLog(build, cb);
-      });
-    }());
+  if(sanitizedArgs.to && sanitizedArgs.from) {
+    fetchProjectLogs(sanitizedArgs);
+  } else if (sanitizedArgs.latest) {
+    getLatestBuild(sanitizedArgs.host, sanitizedArgs.project, function (latestBuild) {
+      // Pass latest build to fetchProjectLogs
+      fetchProjectLogs(sanitizedArgs, latestBuild);
+    });
+  } else {
+    throw new Error('Provide (from and to) or latest');
   }
 
-  async.parallel(gets, function (err, results) {
+  function fetchProjectLogs (sanitizedArgs, latestBuild) {
+console.log('fetchProjectLogs\'s sanitizedArgs:', sanitizedArgs);
+    var gets = []
+      , from = latestBuild - sanitizedArgs.latest + 1
+      , to = latestBuild
+      , host = sanitizedArgs.host
+      , project = sanitizedArgs.project;
 
-    if (err) {
-      console.log(err);
-      process.exit();
+    console.log('Fetching "' + project + '" from: ' + host);
+    console.log('Builds:', {from: from, to: to});
+
+    for (var i = from; i <= to; i++) {
+
+      // Create a scope to close build number around
+      (function () {
+        var build = i;
+        gets.push(function (cb) {
+          getLog(build, host, project, cb);
+        });
+      }());
     }
 
-    printResults();
-    console.log('\nDone.');
-  });
+    async.parallel(gets, function (err, results) {
+      if (err) {
+        console.log(err);
+        process.exit();
+      }
+
+      printResults();
+      console.log('\nDone.');
+    });
+  }
 }
+
+exports.startExternally = startExternally;
