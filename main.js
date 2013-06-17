@@ -3,16 +3,11 @@ var optimist = require('optimist');
 /**
  * Creates a jake task to display tests within the project that most frequently fail.
  */
-var sauceErrorCounterTask = function (jenkinsProject) {
-  namespace('spec', function () {
-    desc('Display tests that most frequently fail');
-    task('sauceErrorCounter', function () {
-      var args = arguments[0].split(' ');
+var errorCounterFunc = function (jenkinsProject, argString) {
+  var args = argString.split(' ');
 
-      args.push('--project', jenkinsProject);
-      require('./jake-spec-error-counter').startExternally(args, complete);
-    }, {async: true});
-  });
+  args.push('--project', jenkinsProject);
+  require('./jake-spec-error-counter').startExternally(args, complete);
 };
 
-exports.sauceErrorCounterTask = sauceErrorCounterTask;
+exports.errorCounterFunc = errorCounterFunc;
