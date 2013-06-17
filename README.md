@@ -17,4 +17,4 @@ Jake usage from within a project:
 ====================
     jake spec:sauceErrorCounter["--latest 50"]
     jake spec:sauceErrorCounter["--from 1300 --to 1350"]
-Note: ```project``` is set within the project itself, and needed be included as an argument
+Note: ```project``` is set within the project itself, and needent be included as an argument
