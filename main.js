@@ -7,10 +7,11 @@ var errorCounterTask = function (jenkinsProject) {
   namespace('spec', function () {
     desc('Display tests that most frequently fail');
     task('errorCounter', function () {
-      var args = optimist.parse([].slice.apply(arguments));
+console.log('initially passed args:', arguments);
+      var args = arguments[0].split(' ');
 
-      args.jenkinsProject = jenkinsProject;
-      console.log({args: args});
+      args.push('--project', jenkinsProject);
+console.log({'task args': args});
       require('./jake-spec-error-counter').startExternally(args, complete);
     }, {async: true});
   });

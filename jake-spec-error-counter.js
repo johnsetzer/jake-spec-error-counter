@@ -10,7 +10,7 @@ var _ = require('underscore')
   , numFailedBuilds = 0;
 
 function parseArguments (args) {
-console.log('incoming args:', args);
+console.log('incoming args:', args, args instanceof Array);
   var argv = require('optimist')
     .usage('Usage: $0 --host [example.com] --project [projectname] (--latest ' +
       '[num] OR --from [num] --to [num])')
@@ -90,6 +90,7 @@ function getLatestBuild (host, project, next) {
     , path: '/job/' + project + '/api/json'
   }
   , file = '';
+console.log('getLatestBuild host+path', host + options.path);
 
   http.get(options, function (res) {
     res.on('data', function (chunk) {
@@ -110,7 +111,7 @@ function getLog (buildNumber, host, project, cb) {
     , path: '/job/' + project + '/' + buildNumber + '/consoleText'
   }
   , file = '';
-
+console.log('getLog host+path', host + options.path);
   http.get(options, function (resp) {
     resp.on('data', function (chunk) {
       var str = chunk.toString();
@@ -145,20 +146,20 @@ function printResults () {
 function init (sanitizedArgs, cb) {
 console.log('init\'s sanitizedArgs:', sanitizedArgs);
   if(sanitizedArgs.to && sanitizedArgs.from) {
-    fetchProjectLogs(sanitizedArgs, null, cb);
+    fetchProjectLogs(sanitizedArgs, cb);
   } else if (sanitizedArgs.latest) {
     getLatestBuild(sanitizedArgs.host, sanitizedArgs.project, function (latestBuild) {
       sanitizedArgs.from = latestBuild - sanitizedArgs.latest + 1;// TODO: Rename latest
       sanitizedArgs.to = latestBuild;
 
       // Pass latest build to fetchProjectLogs
-      fetchProjectLogs(sanitizedArgs, latestBuild, cb);
+      fetchProjectLogs(sanitizedArgs, cb);
     });
   } else {
     throw new Error('Provide (from and to) or latest');
   }
 
-  function fetchProjectLogs (sanitizedArgs, cb) {
+  function fetchProjectLogs (sanitizedArgs, finalCb) {
 console.log('fetchProjectLogs\'s sanitizedArgs:', sanitizedArgs);
       var gets = []
       , from = sanitizedArgs.from
@@ -187,8 +188,7 @@ console.log('fetchProjectLogs\'s sanitizedArgs:', sanitizedArgs);
       }
 
       printResults();
-      console.log('\nDone.');
-      cb();
+      finalCb();
     });
   }
 }
