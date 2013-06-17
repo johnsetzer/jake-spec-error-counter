@@ -10,7 +10,6 @@ var _ = require('underscore')
   , numFailedBuilds = 0;
 
 function parseArguments (args) {
-console.log('incoming args:', args, args instanceof Array);
   var argv = require('optimist')
     .usage('Usage: $0 --host [example.com] --project [projectname] (--latest ' +
       '[num] OR --from [num] --to [num])')
@@ -46,9 +45,6 @@ console.log('incoming args:', args, args instanceof Array);
       , from: argv.f || argv.from
       , to: argv.t || argv.to
     };
-
-console.log('argv:', argv);
-console.log('sanitizedArgs:', sanitizedArgs);
 
   return sanitizedArgs;
 }
@@ -90,7 +86,6 @@ function getLatestBuild (host, project, next) {
     , path: '/job/' + project + '/api/json'
   }
   , file = '';
-console.log('getLatestBuild host+path', host + options.path);
 
   http.get(options, function (res) {
     res.on('data', function (chunk) {
@@ -111,7 +106,7 @@ function getLog (buildNumber, host, project, cb) {
     , path: '/job/' + project + '/' + buildNumber + '/consoleText'
   }
   , file = '';
-console.log('getLog host+path', host + options.path);
+
   http.get(options, function (resp) {
     resp.on('data', function (chunk) {
       var str = chunk.toString();
@@ -144,15 +139,13 @@ function printResults () {
 }
 
 function init (sanitizedArgs, cb) {
-console.log('init\'s sanitizedArgs:', sanitizedArgs);
-  if(sanitizedArgs.to && sanitizedArgs.from) {
+  if (sanitizedArgs.to && sanitizedArgs.from) {
     fetchProjectLogs(sanitizedArgs, cb);
   } else if (sanitizedArgs.latest) {
     getLatestBuild(sanitizedArgs.host, sanitizedArgs.project, function (latestBuild) {
       sanitizedArgs.from = latestBuild - sanitizedArgs.latest + 1;// TODO: Rename latest
       sanitizedArgs.to = latestBuild;
 
-      // Pass latest build to fetchProjectLogs
       fetchProjectLogs(sanitizedArgs, cb);
     });
   } else {
@@ -160,8 +153,7 @@ console.log('init\'s sanitizedArgs:', sanitizedArgs);
   }
 
   function fetchProjectLogs (sanitizedArgs, finalCb) {
-console.log('fetchProjectLogs\'s sanitizedArgs:', sanitizedArgs);
-      var gets = []
+    var gets = []
       , from = sanitizedArgs.from
       , to = sanitizedArgs.to
       , host = sanitizedArgs.host
