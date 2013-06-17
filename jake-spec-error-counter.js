@@ -53,8 +53,8 @@ console.log('sanitizedArgs:', sanitizedArgs);
   return sanitizedArgs;
 }
 
-function startExternally (args) {
-  init(parseArguments(args));
+function startExternally (args, cb) {
+  init(parseArguments(args), cb);
 }
 
 function incrementKey (obj, key) {
@@ -142,24 +142,27 @@ function printResults () {
   sortAndPrint(specFails);
 }
 
-function init (sanitizedArgs) {
+function init (sanitizedArgs, cb) {
 console.log('init\'s sanitizedArgs:', sanitizedArgs);
   if(sanitizedArgs.to && sanitizedArgs.from) {
-    fetchProjectLogs(sanitizedArgs);
+    fetchProjectLogs(sanitizedArgs, null, cb);
   } else if (sanitizedArgs.latest) {
     getLatestBuild(sanitizedArgs.host, sanitizedArgs.project, function (latestBuild) {
+      sanitizedArgs.from = latestBuild - sanitizedArgs.latest + 1;// TODO: Rename latest
+      sanitizedArgs.to = latestBuild;
+
       // Pass latest build to fetchProjectLogs
-      fetchProjectLogs(sanitizedArgs, latestBuild);
+      fetchProjectLogs(sanitizedArgs, latestBuild, cb);
     });
   } else {
     throw new Error('Provide (from and to) or latest');
   }
 
-  function fetchProjectLogs (sanitizedArgs, latestBuild) {
+  function fetchProjectLogs (sanitizedArgs, cb) {
 console.log('fetchProjectLogs\'s sanitizedArgs:', sanitizedArgs);
-    var gets = []
-      , from = latestBuild - sanitizedArgs.latest + 1
-      , to = latestBuild
+      var gets = []
+      , from = sanitizedArgs.from
+      , to = sanitizedArgs.to
       , host = sanitizedArgs.host
       , project = sanitizedArgs.project;
 
@@ -185,6 +188,7 @@ console.log('fetchProjectLogs\'s sanitizedArgs:', sanitizedArgs);
 
       printResults();
       console.log('\nDone.');
+      cb();
     });
   }
 }
