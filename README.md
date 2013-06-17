@@ -7,6 +7,9 @@ Install:
     git clone git@github.int.yammer.com/yammer/jake-spec-error-counter
     cd jake-spec-error-counter
     npm install
+    npm link
+    cd yamjs
+    npm link jake-spec-error-counter
 
 Standalone Usage:
 ====================
