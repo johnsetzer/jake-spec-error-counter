@@ -1,5 +1,5 @@
 {
-  "author": "jsetzer",
+  "author": "Yammer",
   "name": "jake-spec-error-counter",
   "description": "Tool for downloading build logs from jenkins and counting failed tests",
   "version": "0.0.1",
