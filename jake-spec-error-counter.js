@@ -62,12 +62,11 @@ function incrementKey (obj, key) {
 }
 
 function tallyLog (rawLog, cb) {
-
   var matches = rawLog.match(/.*\[(\w+)\-.*FAILED Spec\[(.*)\].*/ig);
 
   if(matches) {
     matches.forEach(function (m) {
-      // Same as meatches but with no g flag
+      // Same as matches but with no g flag
       var rematch = m.match(/.*\[(\w+)\-.*FAILED Spec\[(.*)\].*/i)
         , browser = rematch[1]
         , spec = rematch[2];
@@ -86,11 +85,11 @@ function tallyLog (rawLog, cb) {
 
 function getLatestBuild (host, project, next) {
   var options = {
-    host: host,
-    port: 80,
-    path: '/job/' + project + '/api/json'
-  },
-  file = '';
+    host: host
+    , port: 80
+    , path: '/job/' + project + '/api/json'
+  }
+  , file = '';
 
   http.get(options, function (res) {
     res.on('data', function (chunk) {
