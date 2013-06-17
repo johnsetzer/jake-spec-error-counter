@@ -106,11 +106,11 @@ function getLatestBuild (host, project, next) {
 
 function getLog (buildNumber, host, project, cb) {
   var options = {
-    host: host,
-    port: 80,
-    path: '/job/' + project + '/' + buildNumber + '/consoleText' // Good test build 6277
-  },
-  file = '';
+    host: host
+    , port: 80
+    , path: '/job/' + project + '/' + buildNumber + '/consoleText'
+  }
+  , file = '';
 
   http.get(options, function (resp) {
     resp.on('data', function (chunk) {
@@ -126,9 +126,9 @@ function getLog (buildNumber, host, project, cb) {
 
 function sortAndPrint (fails) {
   _.chain(fails)
-    .pairs().sortBy(function (pair){
+    .pairs().sortBy(function (pair) {
       return pair[1] * -1;
-    }).each(function (pair){
+    }).each(function (pair) {
       console.log(pair[0] + ': ' +  pair[1]);
     });
 }
