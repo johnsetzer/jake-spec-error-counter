@@ -144,10 +144,6 @@ function printResults () {
 
 function init (sanitizedArgs) {
 console.log('init\'s sanitizedArgs:', sanitizedArgs);
-  var from
-    , to
-    , latest;
-
   if(sanitizedArgs.to && sanitizedArgs.from) {
     fetchProjectLogs(sanitizedArgs);
   } else if (sanitizedArgs.latest) {
