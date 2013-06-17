@@ -10,11 +10,11 @@ Install:
 
 Standalone Usage:
 ====================
-    ```node cmd --project myJenkinsProject --latest 50```
-    ```node cmd --project myJenkinsProject --from 1300 --to 1350```
+    node cmd --project myJenkinsProject --latest 50
+    node cmd --project myJenkinsProject --from 1300 --to 1350
 
 Jake usage from within a project:
 ====================
-    ```jake spec:sauceErrorCounter["--latest 50"]```
-    ```jake spec:sauceErrorCounter["--from 1300 --to 1350"]```
+    jake spec:sauceErrorCounter["--latest 50"]
+    jake spec:sauceErrorCounter["--from 1300 --to 1350"]
     Note: ```project``` is set within the project itself, and needed be included as an argument
