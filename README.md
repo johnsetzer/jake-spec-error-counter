@@ -4,10 +4,17 @@ Queries jake-spec logs from jenkins and counts failed tests.
 
 Install:
 ====================
-    git clone git@github.com:johnsetzer/jake-spec-error-counter.git
+    git clone git@github.int.yammer.com/yammer/jake-spec-error-counter
     cd jake-spec-error-counter
     npm install
 
-Usage:
+Standalone Usage:
 ====================
-    node ./jake-spec-error-counter.js --host example.com --from 6277 --to 6280
+    ```node cmd --project myJenkinsProject --latest 50```
+    ```node cmd --project myJenkinsProject --from 1300 --to 1350```
+
+Jake usage from within a project:
+====================
+    ```jake spec:sauceErrorCounter["--latest 50"]```
+    ```jake spec:sauceErrorCounter["--from 1300 --to 1350"]```
+    Note: ```project``` is set within the project itself, and needed be included as an argument
