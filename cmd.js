@@ -1,5 +1,5 @@
-var errorCounter = require('./jake-spec-error-counter.js');
+var sauceErrorCounter = require('./jake-spec-error-counter.js');
 
-errorCounter.startExternally(process.argv, function () {
+sauceErrorCounter.startExternally(process.argv, function () {
   console.log('Done.');
 });
