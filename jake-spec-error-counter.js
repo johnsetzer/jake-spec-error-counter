@@ -138,26 +138,26 @@ function printResults () {
   sortAndPrint(specFails);
 }
 
-function init (sanitizedArgs, cb) {
-  if (sanitizedArgs.to && sanitizedArgs.from) {
-    fetchProjectLogs(sanitizedArgs, cb);
-  } else if (sanitizedArgs.latest) {
-    getLatestBuild(sanitizedArgs.host, sanitizedArgs.project, function (latestBuild) {
-      sanitizedArgs.from = latestBuild - sanitizedArgs.latest + 1;// TODO: Rename latest
-      sanitizedArgs.to = latestBuild;
+function init (args, cb) {
+  if (args.to && args.from) {
+    fetchProjectLogs(args, cb);
+  } else if (args.latest) {
+    getLatestBuild(args.host, args.project, function (latestBuild) {
+      args.from = latestBuild - args.latest + 1;
+      args.to = latestBuild;
 
-      fetchProjectLogs(sanitizedArgs, cb);
+      fetchProjectLogs(args, cb);
     });
   } else {
     throw new Error('Provide (from and to) or latest');
   }
 
-  function fetchProjectLogs (sanitizedArgs, finalCb) {
+  function fetchProjectLogs (args, cb) {
     var gets = []
-      , from = sanitizedArgs.from
-      , to = sanitizedArgs.to
-      , host = sanitizedArgs.host
-      , project = sanitizedArgs.project;
+      , from = args.from
+      , to = args.to
+      , host = args.host
+      , project = args.project;
 
     console.log('Fetching "' + project + '" from: ' + host);
     console.log('Builds:', {from: from, to: to});
@@ -180,7 +180,7 @@ function init (sanitizedArgs, cb) {
       }
 
       printResults();
-      finalCb();
+      cb();
     });
   }
 }
